@@ -125,10 +125,10 @@ func (srv *Server) Start(router http.Handler, opt *http.Server) func(ctx context
 		} else {
 
 			log.Println("server: http traffic bad-request")
-			go http.ListenAndServe(":http",
+			go http.ListenAndServe(":http",mgr.HTTPHandler(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusBadRequest)
-				}))
+				})))
 
 		}
 
