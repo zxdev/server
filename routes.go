@@ -33,9 +33,14 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// Heartbeat; default response
+func Heartbeat() string {
+	return "alive"
+}
+
 // Public represents a common set of routes for use with the chi mux router
 // [root, heartbeat, endpoints, download, documentation]
-func Public(r *chi.Mux, dlPath, docPath *string) {
+func Public(r *chi.Mux, heartbeat func() string, dlPath, docPath *string) {
 
 	log.Println("router: add public routes")
 
@@ -45,10 +50,12 @@ func Public(r *chi.Mux, dlPath, docPath *string) {
 	})
 
 	// heartbeat; header
-	r.Get("/hb", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("heartbeat", "alive")
-		w.WriteHeader(http.StatusOK) // 200
-	})
+	if heartbeat != nil {
+		r.Get("/hb", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("heartbeat", heartbeat())
+			w.WriteHeader(http.StatusOK) // 200
+		})
+	}
 
 	// endpoint; list all available registered routes
 	r.Get("/x/endpoint", func(w http.ResponseWriter, req *http.Request) {
