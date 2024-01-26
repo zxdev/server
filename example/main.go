@@ -25,7 +25,7 @@ func main() {
 
 	// handlers
 	router := server.Public(server.Heartbeat, nil, nil)
-	authkey.NewAuth(&param.authPath, router).Silent()
+	authkey.NewAuth(&param.authPath, router) // .Silent()
 
 	// start graceful managers
 	grace := env.NewGraceful()

@@ -154,9 +154,7 @@ func (a *Auth) refresh() (n int) {
 			for scanner.Scan() {
 				var user, key string
 				fmt.Sscanf(scanner.Text(), "%s %s", &user, &key)
-				a.mu.Lock()
 				a.uMap[key] = user
-				a.mu.Unlock()
 				n++
 			}
 			f.Close()
