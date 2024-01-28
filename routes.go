@@ -44,7 +44,7 @@ func Public(heartbeat func() string, dlPath, docPath *string) *chi.Mux {
 
 	router := chi.NewMux()
 
-	log.Println("router: add public routes")
+	log.Println("server: add public routes")
 
 	// root; go away
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
