@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/zxdev/env/v2"
 	"github.com/zxdev/server"
 	"github.com/zxdev/server/authkey"
@@ -25,7 +26,16 @@ func main() {
 
 	// handlers
 	router := server.Public(server.Heartbeat, nil, nil)
-	authkey.NewAuth(&param.authPath, router) // .Silent()
+	ak := authkey.NewAuth(&param.authPath, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
+
+	// download; optional public download
+	router.Route("/demo", func(rx chi.Router) {
+		rx.Use(ak.IsValid)
+		rx.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("auth", "success")
+			w.WriteHeader(http.StatusOK)
+		})
+	})
 
 	// start graceful managers
 	grace := env.NewGraceful()

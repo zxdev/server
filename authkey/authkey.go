@@ -95,6 +95,16 @@ func (a *Auth) Silent() *Auth { a.silent = !a.silent; return a }
 // Admin sets the admin name; {default:admin}
 func (a *Auth) Admin(admin string) *Auth { a.admin = admin; return a }
 
+// User will set a manual user,key combination; key must 16 or characters
+func (a *Auth) User(user, key string) *Auth {
+	if len(user) > 0 && len(key) >= 12 {
+		a.mu.Lock()
+		a.uMap[user] = key
+		a.mu.Unlock()
+	}
+	return a
+}
+
 // Start automated authorization refreshing; useful on clusters which
 // share a common file or sync'd file system
 func (a *Auth) Start(ctx context.Context, refresh *time.Duration) {
