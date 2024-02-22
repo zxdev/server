@@ -95,11 +95,11 @@ func (a *Auth) Silent() *Auth { a.silent = !a.silent; return a }
 // Admin sets the admin name; {default:admin}
 func (a *Auth) Admin(admin string) *Auth { a.admin = admin; return a }
 
-// User will set a manual user,key combination; key must 16 or characters
+// User will set a manual user,key combination; key must 6 or more characters
 func (a *Auth) User(user, key string) *Auth {
-	if len(user) > 0 && len(key) >= 12 {
+	if len(user) > 0 && len(key) > 5 {
 		a.mu.Lock()
-		a.uMap[user] = key
+		a.uMap[strings.ToLower(key)] = strings.ToLower(user)
 		a.mu.Unlock()
 	}
 	return a
