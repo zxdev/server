@@ -4,8 +4,6 @@ This starts a http or an http/https server using Let's Encrypt certificates whic
 
 Uses graceful shutdown when it's time to die, meaning in-flight connections finish and are not dropped in the middle of the request while new requests are rejected during the shutdown process. 
 
-This package supports ```github.com/zxdev/env``` package and tags. 
-
 ```golang
 
 // Server structure; supports the zxdev/env package
@@ -18,24 +16,47 @@ type Server struct {
 
 ```
 
-The default senario is ```http``` on ```localhost:1455```, however when a FQDN (eg. example.com) is configured as a HOST paramater, then requests will be served based on the server.Mirror policy. 
+The default configuration is ```http``` on ```localhost:1455```, however when a FQDN (eg. example.com) is configured as a HOST paramater, then requests will be served based on an https server and follow the server.Mirror policy. 
 
-server.Mirror = true responsed on port 80 or 443.
-server.Mirror = false returns 400 response codes for http requests requiring port 443 connections
+* server.Mirror = true responsed on port 80 or 443.
+* server.Mirror = false returns 400 response codes for http requests requiring port 443 connections
+
+# Authentication
+
+*	authkey is a simple user:pass based system and middleware with supporting management endpoints
+*	passkey is an inveral based rolling token generation system with simple middleware for machine to machine communication based on shared secret based off the RFC 4226 standards
+
+See the example folder for working sample use cases
 
 ```golang
+
+	type params struct {
+		Secret string `help:"shared secret"`
+	}
 
 	// bootstrap
 	var param params
 	var srv server.Server
-	environ := env.NewEnv(&srv)
+	env.NewEnv(&param, &srv)
 
-	// paths
-	param.authPath = env.Dir(environ.Var, "conf", "auth.keys")
-
-	// handlers
+	// generic public paths
 	router := server.Public(server.Heartbeat, nil, nil)
-	authkey.NewAuth(&param.authPath, router).Silent()
+
+	// configure passkey for the server
+	pk := passkey.NewPassKey(param.Secret)
+	if pk == nil { // failed; generate new secret
+		pk = passkey.NewPassKey(nil)
+		log.Println("passkey:", pk.Secret())
+	}
+
+	// sample passkey.IsValid middleware; protected api path
+	router.Route("/demo", func(rx chi.Router) {
+		rx.Use(passkey.IsValid(pk, nil))
+		rx.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("auth", "success")
+			w.WriteHeader(http.StatusOK)
+		})
+	})
 
 	// start graceful managers
 	grace := env.NewGraceful()
@@ -50,4 +71,21 @@ server.Mirror = false returns 400 response codes for http requests requiring por
 	grace.Wait()
 
 ```
+
+Sample passkey access responses
+
+```shell
+	$curl -i -H token:3317539975 http://localhost:1455/demo
+	HTTP/1.1 200 OK
+	Auth: success
+	Date: Fri, 29 Mar 2024 05:47:31 GMT
+	Content-Length: 0
+
+	$curl -i -H token:3317539975 http://localhost:1455/demo
+	HTTP/1.1 401 Unauthorized
+	Date: Fri, 29 Mar 2024 05:49:44 GMT
+	Content-Length: 0
+```
+
+
 
