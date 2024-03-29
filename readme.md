@@ -23,8 +23,8 @@ The default configuration is ```http``` on ```localhost:1455```, however when a 
 
 # Authentication
 
-*	authkey is a simple user:pass based system and middleware with supporting management endpoints
-*	passkey is an inveral based rolling token generation system with simple middleware for machine to machine communication based on shared secret based off the RFC 4226 standards
+*	```authkey``` is a simple user:pass based system and middleware with supporting management endpoints
+*	```passkey``` is an interval based rolling token generation system with middleware for machine-to-machine communication based on shared secret using RFC 4226 standards
 
 See the example folder for working sample use cases
 
