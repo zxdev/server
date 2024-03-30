@@ -25,6 +25,7 @@ The default configuration is ```http``` on ```localhost:1455```, however when a 
 
 *	```authkey``` is a simple user:pass based system and middleware with supporting management endpoints
 *	```passkey``` is an interval based rolling token generation system with middleware for machine-to-machine communication based on shared secret using RFC 4226 standards
+	* For passkey manual api tesing a passkey generator ```go build passkey/cmd/pkgen.go``` is provided to obtain the current passkey which can be used from the shell ```curl -H token:$(./pkgen AW6TJVTYMAYJXLWFW2WWJ6D3Q5B2AY25) http://localhost:1455/demo``` for command line testing
 
 See the example folder for working sample use cases
 
@@ -86,6 +87,7 @@ Sample passkey access responses
 	Date: Fri, 29 Mar 2024 05:49:44 GMT
 	Content-Length: 0
 ```
+
 
 
 
