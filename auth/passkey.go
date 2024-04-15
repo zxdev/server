@@ -1,4 +1,4 @@
-package passkey
+package auth
 
 import (
 	"context"
@@ -186,31 +186,20 @@ func (pk *PassKey) token() {
 // MIDDLEWARE
 //
 
-// IsValid middleware is restricts access to valid passkey tokens and
-// requires {token} to be set as token:{token} in the http header
-// or be part of the defined static r.URL.Path location when a prefix
-// is configured (eg. prefix=/api/ for /api/{token}/action)
-func IsValid(pk *PassKey, prefix *string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// IsValid middleware is restructed to valid tokens
+// set as token:{passkey} in the http header
+func (pk *PassKey) IsValid(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			token := r.Header.Get("token")
-			if len(token) == 0 && prefix != nil {
-				// failover to url path segment
-				token = strings.TrimPrefix(token, *prefix)
-				token, _, _ = strings.Cut(token, "/")
+		passkey := r.Header.Get("token")
+		if len(passkey) > 0 {
+			tok, _ := strconv.Atoi(passkey)
+			if pk.Validate(uint32(tok)) {
+				next.ServeHTTP(w, r)
+				return
 			}
+		}
 
-			if len(token) > 0 {
-				// validate token
-				tok, _ := strconv.Atoi(token)
-				if pk.Validate(uint32(tok)) {
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-
-			w.WriteHeader(http.StatusUnauthorized)
-		})
-	}
+		w.WriteHeader(http.StatusUnauthorized)
+	})
 }

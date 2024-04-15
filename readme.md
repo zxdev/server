@@ -24,43 +24,55 @@ The default configuration is ```http``` on ```localhost:1455```, however when a 
 # Authentication
 
 *	```authkey``` is a simple user:pass based system and middleware with supporting management endpoints
-*	```passkey``` is an interval based rolling token generation system with middleware for machine-to-machine communication based on shared secret concept of RFC 4226 standards
-	* For passkey manual api tesing a passkey generator ```go build passkey/cmd/pkgen.go``` is provided to obtain the current passkey which can be used from the shell ```curl -H token:$(./pkgen AW6TJVTYMAYJXLWFW2WWJ6D3Q5B2AY25) http://localhost:1455/demo``` for command line testing
+*	```passkey``` is an interval based rolling token generation system with middleware for machine-to-machine communication based on the shared secret concept of RFC 4226 standards
+	* For passkey manual api tesing a passkey generator ```go build cmd/pkgen.go``` is provided to obtain the current passkey which can be used from the shell ```curl -H token:$(./pkgen AW6TJVTYMAYJXLWFW2WWJ6D3Q5B2AY25) http://localhost:1455/demo``` for command line testing
 
-See the example folder for working sample use cases
+See the ```example``` folder for the following working sample that integrates both auth types; shown here for reference.
 
 ```golang
 
+
 	type params struct {
-		Secret string `help:"shared secret"`
+		Secret  string `help:"passKey shared secret"`
+		AuthKey string `help:"authKey filename"`
 	}
 
 	// bootstrap
-	var param params
 	var srv server.Server
-	env.NewEnv(&param, &srv)
+	var param params
+	paths := env.NewEnv(&param, &srv)
+	grace := env.NewGraceful()
+	defer grace.Wait()
 
-	// generic public paths
+	// handlers; default public
 	router := server.Public(server.Heartbeat, nil, nil)
 
-	// configure passkey for the server
-	pk := passkey.NewPassKey(param.Secret)
-	if pk == nil { // failed; generate new secret
-		pk = passkey.NewPassKey(nil)
-		log.Println("passkey:", pk.Secret())
+	// auth; showing both configuration types
+	switch {
+	case len(param.Secret) > 0:
+
+		pk := auth.NewPassKey(param.Secret)
+		if pk == nil { // 
+			pk = auth.NewPassKey(nil)
+			log.Println("tokens:", pk.Tokens())  // token set
+			log.Println("passkey:", pk.Secret()) // to stderr
+			fmt.Fprintln(os.Stdout, pk.Secret()) // to stdout; 
+		}
+		private(pk, router)
+		grace.Manager(pk) // pk.Start; roll timer
+
+	case len(param.AuthKey) > 0:
+
+		param.AuthKey = env.Dir(paths.Srv, "conf", param.AuthKey)
+		ak := auth.NewAuth(&param.AuthKey, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
+		private(ak, router)
+
+	default:
+
+		log.Println("alert: no auth system configured")
+		return
 	}
 
-	// sample passkey.IsValid middleware; protected api path
-	router.Route("/demo", func(rx chi.Router) {
-		rx.Use(passkey.IsValid(pk, nil))
-		rx.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("auth", "success")
-			w.WriteHeader(http.StatusOK)
-		})
-	})
-
-	// start graceful managers
-	grace := env.NewGraceful()
 	grace.Manager(srv.Configure(&http.Server{
 		Handler:           router,
 		ReadHeaderTimeout: time.Second * 5,
@@ -69,25 +81,46 @@ See the example folder for working sample use cases
 	}))
 
 	grace.Done()
-	grace.Wait()
 
 ```
 
-Sample passkey access responses
+PassKey client configuration
+
+```golang
+
+	type params struct {
+		Secret  string `help:"passKey shared secret"`
+	}
+
+	// showing the client passkey configuration for
+	// authentication with a passkey; remote server
+	pkc := auth.NewClient(param.Secret)
+	pkc.Start(ctx) // start roll timer
+	// ...
+	r.Header.Set("token", pkc.Current())
+
+
+```
+
+
+Generate/Save/Load a shared secret from a file for testing purposes
+
 
 ```shell
-	$curl -i -H token:3317539975 http://localhost:1455/demo
+	# generate a new shared secret for passKey
+	# and write the secret to a local file; start server
+	go run example/main.go -secret gen > sandbox/secret 
+
+	# use a shared secret from a local file; start server
+	go run example/main.go -secret $(cat sandbox/secret)
+
+	# client testing example using the pkgen passkey token generator
+	# with a shared secret to generate the current token; also reads
+	# the shared secret from a local file for pkgen to use
+	curl -i -H token:$(sandbox/pkgen $(cat sandbox/secret)) http://localhost:1455/demo
 	HTTP/1.1 200 OK
 	Auth: success
-	Date: Fri, 29 Mar 2024 05:47:31 GMT
+	Date: Mon, 15 Apr 2024 20:19:45 GMT
 	Content-Length: 0
 
-	$curl -i -H token:3317539975 http://localhost:1455/demo
-	HTTP/1.1 401 Unauthorized
-	Date: Fri, 29 Mar 2024 05:49:44 GMT
-	Content-Length: 0
 ```
-
-
-
-

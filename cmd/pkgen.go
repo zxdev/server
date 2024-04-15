@@ -7,8 +7,21 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/zxdev/server/passkey"
+	"github.com/zxdev/server/auth"
 )
+
+/*
+
+	# client testing example using the pkgen passkey token generator
+	# with a shared secret to generate the current token; also reads
+	# the shared secret from a local file for pkgen to use
+	curl -i -H token:$(sandbox/pkgen $(cat sandbox/secret)) http://localhost:1455/demo
+	HTTP/1.1 200 OK
+	Auth: success
+	Date: Mon, 15 Apr 2024 20:19:45 GMT
+	Content-Length: 0
+
+*/
 
 func main() {
 	var secret string
@@ -31,7 +44,7 @@ func main() {
 		return
 	}
 
-	pkc := passkey.NewClient(secret)
+	pkc := auth.NewClient(secret)
 	if interval > 0 {
 		pkc.Interval(interval)
 	}
