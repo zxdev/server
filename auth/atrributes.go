@@ -4,8 +4,8 @@ import (
 	"net/http"
 )
 
-// IsValid type of middleware for authKey and passKey
-// protected endpoint routing
-type IsValid interface {
+// Authentication interface for middleware using
+// authKey and passKey protected endpoint routes
+type Authentication interface {
 	IsValid(http.Handler) http.Handler
 }

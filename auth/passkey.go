@@ -43,6 +43,7 @@ type PassKey struct {
 	interval time.Duration    // defaults to one-minute
 	key      [20]byte         // binary form of secret
 	tokens   [3]atomic.Uint32 // interval tokens
+	hKey     string           // header key name; token
 }
 
 // NewPassKey configurator used the provided secret or generates a
@@ -55,6 +56,10 @@ func NewPassKey(secret interface{}) *PassKey {
 	return new(PassKey).Configure(secret)
 }
 
+// HKey sets the header key name; {default:token}
+func (pk *PassKey) HKey(key string) *PassKey { pk.hKey = key; return pk }
+
+// User will
 // Configure applies the provided secret or generates a new one
 // and generates a new token set based off the current pk.interval
 //
@@ -62,6 +67,11 @@ func NewPassKey(secret interface{}) *PassKey {
 //	accepts: nil, [20]byte slice, or a base32(A..Z,2...7) 32-character string
 //	eg. AW6TJVTYMAYJXLWFW2WWJ6D3Q5B2AY25
 func (pk *PassKey) Configure(secret interface{}) *PassKey {
+
+	// set default hKey
+	if len(pk.hKey) == 0 {
+		pk.HKey("token")
+	}
 
 	// apply provided secret or generate a new one
 	switch a := secret.(type) {
@@ -191,7 +201,7 @@ func (pk *PassKey) token() {
 func (pk *PassKey) IsValid(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		passkey := r.Header.Get("token")
+		passkey := r.Header.Get((pk.hKey))
 		if len(passkey) > 0 {
 			tok, _ := strconv.Atoi(passkey)
 			if pk.Validate(uint32(tok)) {

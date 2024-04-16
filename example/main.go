@@ -40,7 +40,7 @@ func main() {
 			fmt.Fprintln(os.Stdout, pk.Secret()) // to stdout
 		}
 		private(pk, router)
-		grace.Manager(pk)
+		grace.Manager(pk) // pk.Start; roll timer
 
 		// demonstration for a client passkey configuration
 		// for authentication with a passkey remote server
@@ -51,10 +51,11 @@ func main() {
 	case len(param.AuthKey) > 0:
 
 		param.AuthKey = env.Dir(paths.Srv, "conf", param.AuthKey)
-		ak := auth.NewAuth(&param.AuthKey, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
+		ak := auth.NewAuthKey(&param.AuthKey, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
 		private(ak, router)
 
 	default:
+
 		log.Println("alert: no auth system configured")
 		return
 	}
@@ -66,17 +67,14 @@ func main() {
 		WriteTimeout:      time.Second * 30,
 	}))
 
-	// wait for bootstraps to complete
-	grace.Done()
-
-	// wait for a shutdown signal
-	grace.Wait()
+	grace.Done() // wait for bootstraps to complete
+	grace.Wait() // wait for a shutdown signal
 
 }
 
 // private route; sample auth.IsValid protected routes so that
 // is it agnositic to authKey or passKey validation
-func private(auth auth.IsValid, router *chi.Mux) {
+func private(auth auth.Authentication, router *chi.Mux) {
 
 	router.Route("/demo", func(rx chi.Router) {
 		rx.Use(auth.IsValid)

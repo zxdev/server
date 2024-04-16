@@ -42,7 +42,6 @@ See the ```example``` folder for the following working sample that integrates bo
 	var param params
 	paths := env.NewEnv(&param, &srv)
 	grace := env.NewGraceful()
-	defer grace.Wait()
 
 	// handlers; default public
 	router := server.Public(server.Heartbeat, nil, nil)
@@ -52,7 +51,7 @@ See the ```example``` folder for the following working sample that integrates bo
 	case len(param.Secret) > 0:
 
 		pk := auth.NewPassKey(param.Secret)
-		if pk == nil { // 
+		if pk == nil { 
 			pk = auth.NewPassKey(nil)
 			log.Println("tokens:", pk.Tokens())  // token set
 			log.Println("passkey:", pk.Secret()) // to stderr
@@ -64,7 +63,7 @@ See the ```example``` folder for the following working sample that integrates bo
 	case len(param.AuthKey) > 0:
 
 		param.AuthKey = env.Dir(paths.Srv, "conf", param.AuthKey)
-		ak := auth.NewAuth(&param.AuthKey, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
+		ak := auth.NewAuthKey(&param.AuthKey, router) // .Silent() .User("bob","I'mBobI'mBobI'mBob")
 		private(ak, router)
 
 	default:
@@ -79,8 +78,8 @@ See the ```example``` folder for the following working sample that integrates bo
 		ReadTimeout:       time.Second * 10,
 		WriteTimeout:      time.Second * 30,
 	}))
-
 	grace.Done()
+	grace.Wait()
 
 ```
 
