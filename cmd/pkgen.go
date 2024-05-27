@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/base32"
 	"fmt"
 	"os"
@@ -21,6 +22,17 @@ import (
 	Date: Mon, 15 Apr 2024 20:19:45 GMT
 	Content-Length: 0
 
+	# pkgen can be used to generate a new secret or generates a new passkey
+	# using the specified interval when the secret is provided
+
+	./pkgen
+	usage:
+	passkey {secret} {interval}
+	secret   : LGU4NNOKNUXFD7RKJX3JEPHVY44AZ5CI
+	interval : is n seconds (default 60s)
+
+	./pkgen LGU4NNOKNUXFD7RKJX3JEPHVY44AZ5CI
+	323077921
 */
 
 func main() {
@@ -34,7 +46,10 @@ func main() {
 	case 2:
 		secret = os.Args[1]
 	default:
-		fmt.Print("\nusage:\npasskey {secret} {interval}\n secret   : a 32-character base32 encoded string\n interval : is n seconds (default 60s)\n\n")
+		var b [20]byte
+		rand.Read(b[:])
+		fmt.Printf("\nusage:\npasskey {secret} {interval}\n secret   : %s\n interval : is n seconds (default 60s)\n\n",
+			base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b[:]))
 		return
 	}
 
