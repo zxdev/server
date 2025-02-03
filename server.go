@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -63,7 +64,7 @@ func (srv *Server) Configure(opt *http.Server) *Server {
 
 // Start an http and/or https server using Let's Encrypt with a http redirect policy as
 // defined by *Server.Redirect
-func (srv *Server) Start(ctx context.Context) {
+func (srv *Server) Start(ctx context.Context, init *sync.WaitGroup) {
 
 	if srv.opt == nil {
 		log.Println("alert: server was not configured")
@@ -124,9 +125,10 @@ func (srv *Server) Start(ctx context.Context) {
 	}
 
 	log.Printf("server: %s", srv.Host)
+	defer log.Println("server: shutdown")
 
+	init.Done()                            // initialization is done
 	<-ctx.Done()                           // wait for a shutdown signal
 	srv.opt.Shutdown(context.Background()) // gracefully shutdown
-	log.Println("server: shutdown")
 
 }
