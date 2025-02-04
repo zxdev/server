@@ -62,9 +62,11 @@ func (srv *Server) Configure(opt *http.Server) *Server {
 	return srv
 }
 
-// Start an http and/or https server using Let's Encrypt with a http redirect policy as
-// defined by *Server.Redirect
-func (srv *Server) Start(ctx context.Context, init *sync.WaitGroup) {
+// Listen an http and/or https server using Let's Encrypt with a http redirect policy as
+// defined by *Server.Redirect; ctx is required so that the server will automatically
+// shutdown on context cancellation, but init is optional unless a flow controller
+// is utilized or is necessary to confirm the server is in a ready state
+func (srv *Server) Listen(ctx context.Context, init *sync.WaitGroup) {
 
 	if srv.opt == nil {
 		log.Println("alert: server was not configured")
@@ -127,8 +129,13 @@ func (srv *Server) Start(ctx context.Context, init *sync.WaitGroup) {
 	log.Printf("server: %s", srv.Host)
 	defer log.Println("server: shutdown")
 
-	init.Done()                            // initialization is done
-	<-ctx.Done()                           // wait for a shutdown signal
-	srv.opt.Shutdown(context.Background()) // gracefully shutdown
+	if init != nil {
+		init.Done() // signal initialization is done
+	}
+
+	<-ctx.Done() // wait for a shutdown signal
+	cx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	srv.opt.Shutdown(cx) // gracefully shutdown
+	cancel()
 
 }
